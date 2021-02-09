@@ -1,0 +1,168 @@
+% Saved by Prover9-Mace4 Version 0.5, December 2007.
+
+set(ignore_option_dependencies). % GUI handles dependencies
+
+if(Prover9). % Options for Prover9
+  assign(max_seconds, 60).
+end_if.
+
+if(Mace4).   % Options for Mace4
+  assign(max_seconds, 60).
+end_if.
+
+formulas(assumptions).
+
+%differentFrom(x,y)
+%streets: a, b ,c ,d, e
+differentFrom(x, y)->differentFrom(y, x).
+differentFrom(a, b).
+differentFrom(a, c).
+differentFrom(a, d).
+differentFrom(a, e).
+differentFrom(b, c).
+differentFrom(b, d).
+differentFrom(b, e).
+differentFrom(c, d).
+differentFrom(c, e).
+differentFrom(d, e).
+
+%rightPriority(x, y): prioritate de dreapta.
+rightPriority(x, y) -> -rightPriority(y, x).
+rightPriority(b, a).
+rightPriority(c, b).
+rightPriority(d, c).
+rightPriority(e, d).
+rightPriority(a, e).
+-rightPriority(a, c).
+-rightPriority(a, d).
+-rightPriority(b, d).
+-rightPriority(b, e).
+-rightPriority(c, e).
+-rightPriority(c, a).
+-rightPriority(d, a).
+-rightPriority(d, b).
+-rightPriority(e, b).
+-rightPriority(e, c).
+
+%semaphore(x): daca este semafor pe strada.
+semaphore(x)-> green(x) | red(x).
+green(x) -> -red(x).
+red(x) -> -green(x).
+
+%indicator(x): daca este indicator pe strada
+indicator(x)-> prioritate(x) | stop(x) | none(x).
+prioritate(x)-> -stop(x) & -none(x).
+stop(x)-> -prioritate(x) & -none(x).
+none(x)-> -prioritate(x) & -stop(x).
+
+%samePriority(x, y): au aceaasi prioritate -> prioritate de dreapta.
+samePriority(x, y) -> samePriority(y, x).
+prioritate(x) & prioritate(y) & differentFrom(x, y)-> samePriority(x, y).
+stop(x) & stop(y) & differentFrom(x, y)-> samePriority(x, y).
+none(x) & none(y) & differentFrom(x, y)-> samePriority(x, y).
+
+%priority(a, b): a are prioritate fata de b
+priority(x, y) -> -priority(y, x).
+semaphore(x) & red(x) & differentFrom(x, y) -> priority(y, x).
+semaphore(x) & green(x) & differentFrom(x, y)-> priority(x, y).
+
+-semaphore(x) & -semaphore(y) & samePriority(x, y) & rightPriority(x, y)-> priority(x, y).
+-semaphore(x) & -semaphore(y) & prioritate(x) & (stop(y) | none(y)) & differentFrom(x, y)-> priority(x, y).
+-semaphore(x) & -semaphore(y) & prioritate(y) & (stop(x) | none(x)) & differentFrom(x, y)-> priority(y, x).
+-semaphore(x) & -semaphore(y) & none(x) & stop(y) & differentFrom(x, y)-> priority(x, y).
+-semaphore(x) & -semaphore(y) & none(y) & stop(x) & differentFrom(x, y)-> priority(y, x).
+
+%intra(x): are prioritate fata de toti, poate sa intre
+
+masina(x) & -pieton(x) & (masina(y) & priority(x, y) | -masina(y)) -> intra(x).
+
+masina(a) & -pieton(a) 
+& (masina(b) & priority(a, b) | -masina(b)) 
+& (masina(c) & priority(a, c) | -masina(c))
+& (masina(d) & priority(a, d) | -masina(d))
+& (masina(e) & priority(a, e) | -masina(e))->intra2(a).
+
+masina(b) & -pieton(b) 
+& (masina(a) & priority(b, a) | -masina(a)) 
+& (masina(c) & priority(b, c) | -masina(c))
+& (masina(d) & priority(b, d) | -masina(d))
+& (masina(e) & priority(b, e) | -masina(e))->intra2(b).
+
+masina(c) & -pieton(c) 
+& (masina(b) & priority(c, b) | -masina(b)) 
+& (masina(a) & priority(c, a) | -masina(a))
+& (masina(d) & priority(c, d) | -masina(d))
+& (masina(e) & priority(c, e) | -masina(e))->intra2(c).
+
+masina(d) & -pieton(d) 
+& (masina(b) & priority(d, b) | -masina(b)) 
+& (masina(c) & priority(d, c) | -masina(c))
+& (masina(d) & priority(d, a) | -masina(a))
+& (masina(e) & priority(d, e) | -masina(e))->intra2(d).
+
+masina(e) & -pieton(e) 
+& (masina(b) & priority(e, b) | -masina(b)) 
+& (masina(c) & priority(e, c) | -masina(c))
+& (masina(d) & priority(e, d) | -masina(d))
+& (masina(a) & priority(e, a) | -masina(a))->intra2(e).
+
+%pass(a, b): daca masina poate traversa intersectia din a in b.
+%pass(a, b) <- a are prioritate fata de toate restul masinilor + nu e pieton pe a si nici pe b + nu e politist
+
+intra2(x) & directie(x, y) & -pieton(y) & -politist -> pass(x, y).
+
+%masina(b) & -pieton(b) & (priority(b, c) & masina(c) | -masina(c)).
+%practic intra(x) nu verifica daca are prioritate fata de toate masinile din intersectie.
+%daca e masina pe x si are prioritate fata de toate celelalte strazi care au masini- > intra(x) (+ pieton).
+%intra <- masina(x) & prioritate(x, y) oricare ar fi y cu prop. masina(y).
+
+%%interssectia:
+-politist.
+
+%semaphore(x): este semafor pe strada x.
+semaphore(a).
+green(a).
+-semaphore(b).
+-semaphore(c).
+-semaphore(d).
+-semaphore(e).
+
+%indicator(x): este indicator pe strada x (poate fi niciunul (none)).
+indicator(a).
+prioritate(a).
+indicator(b).
+stop(b).
+indicator(c).
+none(c).
+indicator(d).
+none(d).
+indicator(e).
+none(e).
+
+%pieton(x): este pieton pe trecere => masina nu poate trece.
+-pieton(a).
+-pieton(b).
+-pieton(c).
+-pieton(d).
+-pieton(e).
+
+%masina(x): este o masina pe strada x.
+masina(a).
+masina(b).
+masina(c).
+-masina(d).
+-masina(e).
+
+%directie(x, y): masina pe strada x care vrea sa mearga pe strada y.
+directie(a, b).
+directie(b, c).
+directie(c, e).
+
+end_of_list.
+
+formulas(goals).
+
+pass(a, b).
+
+end_of_list.
+
